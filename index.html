@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Game Title</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div id="main-menu" class="scene active">
+        <h1>Game Title</h1>
+        <button onclick="transitionToScene('room')">Start Game</button>
+        <button>Options</button>
+        <button>Quit</button>
+    </div>
+    
+    <div id="room" class="scene">
+        <span id="player-count">0</span>/4 inside room
+        <div id="status-indicator"></div>
+        <button onclick="transitionToScene('main-menu')">Quit</button>
+    </div>
+    
+    <div id="preparation" class="scene">
+        Environment Card: <span id="environment-point">0</span>
+        <div id="mission-buttons-container">
+            <!-- Mission buttons will be dynamically appended here -->
+        </div>
+        <div id="mission-content"></div>
+    </div>
+    
+    <div id="waiting-scene" class="scene">
+        <span id="prepared-player-count">0</span>/4 prepared players
+        <div id="selected-mission-content"></div>
+        <button onclick="markPlayerReady()">Ready</button>
+    </div>
+    <div id="main-game-scene" class="scene">
+        <!-- Top Section -->
+        <div class="top-section">
+            <div class="environment-card">Environment Card: <span id="main-game-environment-point">0</span></div>
+            <div class="round-number">Round: <span id="round-number">1</span></div>
+            <div class="stored-energy-card">Stored Energy Card: <span id="energy-point">0</span></div>
+        </div>
+        
+        <!-- Middle Section -->
+        <div class="mid-section">
+            <div class="player-stage">Player <span id="player-number">#</span> is processing stage <span id="stage-number">#</span></div>
+            <div id="game-board-container">
+                <!-- Dynamic game board content will be appended here -->
+            </div>
+        </div>
+        
+        <!-- Bottom Section -->
+        <div class="bottom-section">
+            <div class="mission">Task: <span id="main-game-mission-point">0</span> (<span id="main-game-mission-content">Content</span>)</div>
+            <div id="hand-container">
+                <!-- Player hand content will be appended here -->
+            </div>
+        </div>
+    </div>
+    
+    <div id="loader" class="loader" style="display:none;"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
