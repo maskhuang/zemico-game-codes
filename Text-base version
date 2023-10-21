@@ -1,0 +1,647 @@
+# Overall Game Code including all sections
+# Adding content and validation functions for mission cards
+import logging
+
+# Configure the logging module
+from logging import debug as ld
+from logging import info as li
+from logging import warning as lw
+from logging import error as le
+from logging import critical as lc
+logging.basicConfig(
+    level=logging.DEBUG, format="[%(levelname)s] %(message)s (%(filename)s:%(lineno)d)"
+)
+mission_objectives = {
+    1: {
+        'content': "The Gardener: Have a 'Full House' of producers: 3 cards of one point value and 2 cards of another.",
+        'validation': lambda board: False  # Placeholder
+    },
+    2: {
+        'content': "The Rancher: Have a 'Straight' of herbivorous consumers: 5 cards with consecutive point values.",
+        'validation': lambda board: False  # Placeholder
+    },
+    3: {
+        'content': "The Zookeeper: Have a 'Four of a Kind' of carnivorous consumers: 4 cards of the same point value.",
+        'validation': lambda board: False  # Placeholder
+    },
+    4: {
+        'content': "The Recycler: Have a 'Flush' of decomposers: all decomposers have even point values.",
+        'validation': lambda board: False  # Placeholder
+    },
+    5: {
+        'content': "Mahjong Master: Have a 'Pong' and a 'Chow' of producers: a set of 3 cards with the same point value (Pong) and a sequence of 3 consecutive point values (Chow).",
+        'validation': lambda board: False  # Placeholder
+    },
+    6: {
+        'content': "Poker Face: Have a 'Two Pair' of herbivorous and carnivorous consumers: two cards of one point value and two cards of another point value for each type.",
+        'validation': lambda board: False  # Placeholder
+    },
+    7: {
+        'content': "The Alchemist: Transmute energy: have stored energy equal to the number of producers on the board.",
+        'validation': lambda board: False  # Placeholder
+    },
+    8: {
+        'content': "Monopoly Baron: Own the most valuable block: control the 3x3 grid on the board with the highest total points, which must include at least one card of each type.",
+        'validation': lambda board: False  # Placeholder
+    },
+    9: {
+        'content': "Chess Grandmaster: Achieve a 'Checkmate' pattern: place your cards such that they surround a single card of another type on all 8 sides.",
+        'validation': lambda board: False  # Placeholder
+    },
+    10: {
+        'content': "The Strategist: Achieve a 'Diagonal Cross': have at least one card of each type in a diagonal line.",
+        'validation': lambda board: False  # Placeholder
+    },
+    11: {
+        'content': "The Collector: Assemble a 'Museum' collection: have at least one card of each point value from 1 to 5.",
+        'validation': lambda board: False  # Placeholder
+    },
+    12: {
+        'content': "The Networker: Build the 'Web of Life': have each card adjacent to at least two different types of cards.",
+        'validation': lambda board: False  # Placeholder
+    },
+    13: {
+        'content': "Galactic Overlord: Achieve 'Universal Balance': have an equal number of each type of card on the board, each with an equal total point value.",
+        'validation': lambda board: False  # Placeholder
+    }
+}
+
+from collections import Counter
+
+def validate_full_house_of_producers(board):
+    producers = [card for coord, card in board.items() if card['type'] == 'producer']
+    point_counts = Counter(card['point'] for card in producers)
+    return any(count == 3 for count in point_counts.values()) and any(count == 2 for count in point_counts.values())
+
+def validate_straight_of_herbivorous(board):
+    herbivorous = sorted([card for coord, card in board.items() if card['type'] == 'herbivorous_consumer'], key=lambda x: x['point'])
+    return any(all(herbivorous[i + 1]['point'] - herbivorous[i]['point'] == 1 for i in range(start, start + 4)) for start in range(len(herbivorous) - 4))
+
+def validate_four_of_a_kind_of_carnivorous(board):
+    carnivorous = [card for coord, card in board.items() if card['type'] == 'carnivorous_consumer']
+    point_counts = Counter(card['point'] for card in carnivorous)
+    return any(count >= 4 for count in point_counts.values())
+
+def validate_flush_of_decomposers(board):
+    decomposers = [card for coord, card in board.items() if card['type'] == 'decomposer']
+    return all(card['point'] % 2 == 0 for card in decomposers)
+# Adding the remaining validation functions for mission cards
+
+def validate_pong_and_chow_of_producers(board):
+    producers = sorted([card for coord, card in board.items() if card['type'] == 'producer'], key=lambda x: x['point'])
+    point_counts = Counter(card['point'] for card in producers)
+    
+    # Validate Pong (3 cards of the same point value)
+    pong_valid = any(count >= 3 for count in point_counts.values())
+    
+    # Validate Chow (3 consecutive point values)
+    chow_valid = any(all(producers[i + 1]['point'] - producers[i]['point'] == 1 for i in range(start, start + 2)) for start in range(len(producers) - 2))
+    
+    return pong_valid and chow_valid
+
+def validate_two_pair_of_herbivorous_and_carnivorous(board):
+    herbivorous = [card for coord, card in board.items() if card['type'] == 'herbivorous_consumer']
+    carnivorous = [card for coord, card in board.items() if card['type'] == 'carnivorous_consumer']
+    
+    herbivorous_counts = Counter(card['point'] for card in herbivorous)
+    carnivorous_counts = Counter(card['point'] for card in carnivorous)
+    
+    return any(count >= 2 for count in herbivorous_counts.values()) and any(count >= 2 for count in carnivorous_counts.values())
+# Adding the remaining validation functions for mission cards
+
+def validate_stored_energy_to_producers(board, stored_energy):
+    producers = [card for coord, card in board.items() if card['type'] == 'producer']
+    return stored_energy == len(producers)
+
+from itertools import product
+
+def validate_most_valuable_block(board):
+    max_value = 0
+    max_value_grid_origin = None
+    
+    # For simplicity, we assume the board coordinates range from (0, 0) to (20, 20)
+    for x, y in product(range(0, 18), repeat=2):
+        grid_coords = [(x + dx, y + dy) for dx in range(3) for dy in range(3)]
+        grid_cards = [board.get(coord) for coord in grid_coords]
+        
+        # Check if the 3x3 grid contains at least one card of each type
+        types_in_grid = {card['type'] for card in grid_cards if card is not None}
+        if types_in_grid == {'producer', 'herbivorous_consumer', 'carnivorous_consumer', 'decomposer'}:
+            
+            # Calculate the total value of the 3x3 grid
+            total_value = sum(card['point'] for card in grid_cards if card is not None)
+            if total_value > max_value:
+                max_value = total_value
+                max_value_grid_origin = (x, y)
+                
+    return max_value_grid_origin is not None
+
+def validate_checkmate_pattern(board):
+    for coord, target_card in board.items():
+        adjacent_coords = find_adjacent_coords(coord)
+        adjacent_cards = [board.get(adj_coord) for adj_coord in adjacent_coords]
+        
+        # Check if the target card is surrounded by other types on all 8 sides
+        if all(card is not None and card['type'] != target_card['type'] for card in adjacent_cards):
+            return True
+    return False
+
+def validate_diagonal_cross(board):
+    # Find the min and max coordinates used on the board
+    min_x = min(coord[0] for coord in board.keys())
+    max_x = max(coord[0] for coord in board.keys())
+    min_y = min(coord[1] for coord in board.keys())
+    max_y = max(coord[1] for coord in board.keys())
+    
+    for x, y in product(range(min_x, max_x - 1), range(min_y, max_y - 1)):
+        diagonal_coords = [(x + dx, y + dx) for dx in range(3)]
+        diagonal_cards = [board.get(coord) for coord in diagonal_coords]
+        
+        # Check if the diagonal contains at least one card of each type
+        types_in_diagonal = {card['type'] for card in diagonal_cards if card is not None}
+        if types_in_diagonal == {'producer', 'herbivorous_consumer', 'carnivorous_consumer', 'decomposer'}:
+            return True
+            
+    return False
+
+def validate_museum_collection(board):
+    all_cards = [card for coord, card in board.items()]
+    points = [card['point'] for card in all_cards if 1 <= card['point'] <= 5]
+    return len(set(points)) == 5
+
+def validate_web_of_life(board):
+    for coord, card in board.items():
+        adjacent_cards = find_adjacent_cards_of_type(coord, card['type'], board)
+        
+        # Check if the card is adjacent to at least two different types of cards
+        adjacent_types = {adj_card['type'] for adj_card in adjacent_cards}
+        if len(adjacent_types) < 2:
+            return False
+            
+    return True
+from collections import defaultdict
+def validate_universal_balance(board):
+    # Group cards by type and sum their point values
+    type_sums = defaultdict(int)
+    type_counts = defaultdict(int)
+    for card in board.values():
+        type_sums[card['type']] += card['point']
+        type_counts[card['type']] += 1
+
+    # Check if there's an equal number of each type of card and equal total point values
+    unique_counts = set(type_counts.values())
+    unique_sums = set(type_sums.values())
+    return len(unique_counts) == 1 and len(unique_sums) == 1
+
+
+# Updating mission objectives with actual validation functions
+mission_objectives[1]['validation'] = validate_full_house_of_producers
+mission_objectives[2]['validation'] = validate_straight_of_herbivorous
+mission_objectives[3]['validation'] = validate_four_of_a_kind_of_carnivorous
+mission_objectives[4]['validation'] = validate_flush_of_decomposers
+mission_objectives[5]['validation'] = validate_pong_and_chow_of_producers
+mission_objectives[6]['validation'] = validate_two_pair_of_herbivorous_and_carnivorous
+mission_objectives[7]['validation'] = validate_stored_energy_to_producers
+mission_objectives[8]['validation'] = validate_most_valuable_block
+mission_objectives[9]['validation'] = validate_checkmate_pattern
+mission_objectives[10]['validation'] = validate_diagonal_cross
+mission_objectives[11]['validation'] = validate_museum_collection
+mission_objectives[12]['validation'] = validate_web_of_life
+mission_objectives[13]['validation'] = validate_universal_balance
+
+# Deck Creation Functions
+from random import shuffle, choice
+
+def create_organism_deck():
+    types = ['decomposer', 'producer', 'herbivorous_consumer', 'carnivorous_consumer']
+    return [{'type': t, 'point': i, 'current_point':i} for t in types for i in range(1, 14)]
+
+def create_energy_deck():
+    return [{'type': 'energy', 'point': i} for i in range(1, 14)]
+
+def create_environment_deck():
+    return [{'type': 'environment', 'point': i} for i in range(1, 13)]
+
+def create_mission_deck():
+    # Placeholder for actual mission creation logic
+    return [{'type': 'mission', 'point': i, 'name': f'Mission {i}'} for i in range(1, 14)]
+
+def shuffle_decks(*decks):
+    for deck in decks:
+        shuffle(deck)
+
+# Player Initialization
+def initialize_players(num_players):
+    return [{'id': i, 'hand': [], 'mission': None} for i in range(1, num_players + 1)]
+
+def draw_cards(num_cards, deck, player):
+    for _ in range(num_cards):
+        if deck:  # Check if the deck is not empty
+            card = deck.pop()
+            player['hand'].append(card)
+def discard_and_draw_up_to(num_cards, deck, player):
+    print(f"Player {player['id']}, your current hand is:")
+    for idx, card in enumerate(player['hand']):
+        # Extract 'type' and 'point' values from the card
+        card_values = {'type': card['type'], 'point': card['point']}
+        print(f"{idx+1}. {card_values['type']}(Point:{card_values['point']})")
+
+        # Let the player make a choice
+    discard_choices = input(f"Player {player['id']}, please enter the numbers of the cards you want to discard, separated by commas (e.g., 1,3): ").split(',')
+
+        # Convert choices to integers and validate
+    discard_choices = [int(choice.strip()) - 1 for choice in discard_choices]
+    discard_choices = [choice for choice in discard_choices if 0 <= choice < len(player['hand'])]
+
+        # Discard the selected cards
+    #discarded_cards = [player['hand'][i] for i in sorted(discard_choices, reverse=True)]
+    for i in sorted(discard_choices, reverse=True):
+        del player['hand'][i]
+
+        # Draw new cards to replace the discarded ones
+    new_cards = [deck.pop() for _ in range(4 - len(player['hand'])) if deck]
+    player['hand'].extend(new_cards)
+
+def handle_card_placement(player, board):
+    print(f"Player {player['id']}, it's your turn to place a card.")
+    print("Cards in your hand:")
+    for idx, card in enumerate(player['hand']):
+        card_values = {'type': card['type'], 'point': card['point']}
+        print(f"{idx+1}. {card_values['type']} (Point: {card_values['point']})")
+
+    # Choose a card to place
+    choice = int(input("Choose a card to place (Enter the corresponding number): ")) - 1
+    while choice < 0 or choice >= len(player['hand']):
+        print("Invalid choice. Please choose again.")
+        choice = int(input("Choose a card to place (Enter the corresponding number): ")) - 1
+
+    chosen_card = player['hand'].pop(choice)
+
+    # Choose the coordinates for placement
+    x = int(input("Enter the x-coordinate for placement: "))
+    y = int(input("Enter the y-coordinate for placement: "))
+
+    # Check if the chosen coordinates are already occupied
+    if (x, y) in board:
+        print("This spot is already occupied. Try another spot.")
+        player['hand'].append(chosen_card)  # Put the card back into the player's hand
+        return
+    
+    board[(x, y)] = chosen_card
+    print("[INFO] Card placed at ({}, {}).".format(x, y))
+    
+    # Display the board state
+    display_dynamic_board(board)
+
+
+
+# Checking the next section of the code which is the mission card objectives
+
+# We already have a function that checks if a player has achieved their mission card objective.
+# Here it is for reference:
+
+
+# For demonstration, the individual mission check functions (e.g., check_full_house_of_producers, check_straight_of_herbivores, etc.)
+# are placeholders and will contain the actual logic to validate each mission.
+
+
+# Board Display
+def display_dynamic_board(board):
+    if not board:
+        print("The board is empty.")
+        return
+
+    min_x = min(coord[0] for coord in board.keys())
+    max_x = max(coord[0] for coord in board.keys())
+    min_y = min(coord[1] for coord in board.keys())
+    max_y = max(coord[1] for coord in board.keys())
+
+    for y in range(max_y, min_y - 1, -1):  # Changed this line
+        for x in range(min_x, max_x + 1):
+            card = board.get((x, y), None)
+            if card:
+                print(f"{card['type'][0]}({card['current_point']}/{card['point']})", end=" ")
+            else:
+                print(".....", end=" ")
+        print()
+
+
+
+
+# Helper Functions
+def find_adjacent_coords(coord):
+    x, y = coord
+    return [(x + dx, y + dy) for dx in [-1, 0, 1] for dy in [-1, 0, 1] if (dx, dy) != (0, 0)]
+
+def find_adjacent_cards_of_type(coord, card_type, board, invert):
+    #print(f"Debug: Looking for adjacent cards at {coord} of type {card_type}")
+    adjacent_coords = find_adjacent_coords(coord)
+    #print(f"Debug: Adjacent coordinates are {adjacent_coords}")
+    if invert:
+        return [board[adj_coord] for adj_coord in adjacent_coords if adj_coord in board and board[adj_coord].get('type') != card_type]
+    else:
+        return [board[adj_coord] for adj_coord in adjacent_coords if adj_coord in board and board[adj_coord].get('type') == card_type]
+
+def find_player_with_least_cards(players):
+    min_hand_size = min(len(player['hand']) for player in players)
+    return [player for player in players if len(player['hand']) == min_hand_size][0]
+
+# Function to calculate the energy for producer cards
+def calculate_producer_energy(drawn_energy_card, stored_energy, selected_environment_card):
+    return drawn_energy_card['point'] + min(stored_energy, selected_environment_card['point'])
+
+# Function to adjust the points of adjacent cards based on a consumer card
+def adjust_adjacent_card_points(consumer_card, adjacent_cards):
+    total_points = sum(card['point'] for card in adjacent_cards)
+    if total_points >= consumer_card['point']:
+        remaining_points = consumer_card['point']
+        for card in adjacent_cards:
+            if remaining_points >= card['point']:
+                remaining_points -= card['point']
+                card['point'] = 0
+            else:
+                card['point'] -= remaining_points
+                break
+def handle_player_input_for_herbivorous_consumption(herbivorous_consumer, adjacent_producers):
+    print("Choose the next Herbivorous consumer to consume.")
+    print("Herbivorous consumers:")
+    for i, consumer in enumerate(herbivorous_consumer):
+        print(f"{i + 1}. Type: {consumer['type']}, Point: {consumer['point']}")
+    print("Adjacent producers:")
+    for i, producer in enumerate(adjacent_producers):
+        print(f"{i + 1}. Type: {producer['type']}, Point: {producer['point']}")
+
+    selected_consumer_index = int(input("Select the herbivorous consumer to consume the producer (enter the number): ")) - 1
+    return herbivorous_consumer[selected_consumer_index]
+
+def handle_player_input_for_decreasing_producer_points(herbivorous_consumer, adjacent_producers):
+    print(f"The herbivorous consumer with Point {herbivorous_consumer['point']} is consuming adjacent producers.")
+    print("Adjacent producers:")
+    for i, producer in enumerate(adjacent_producers):
+        print(f"{i + 1}. Type: {producer['type']}, Point: {producer['point']}")
+        
+    print("How would you like to allocate the decrease in points among these producers?")
+    for producer in adjacent_producers:
+        #print('!')
+        decrease=0
+        while decrease < herbivorous_consumer['point']:
+            decrease = int(input(f"Enter the point decrease for producer with Point {producer['point']}: "))
+            print(f"{decrease}")
+            if decrease <= 0:
+                break
+            if producer['current_point'] >= decrease:
+                producer['current_point'] -= decrease
+                break
+            else:
+                decrease -= producer['current_point']
+                producer['current_point'] = 0
+
+def handle_player_input_for_carnivorous_consumption(carnivorous_consumer, adjacent_herbivorous):
+    print("Multiple carnivorous consumers could potentially consume the same herbivorous consumer.")
+    print("Carnivorous consumers:")
+    for i, consumer in enumerate(carnivorous_consumer):
+        print(f"{i + 1}. Type: {consumer['type']}, Point: {consumer['point']}")
+    print("Adjacent herbivorous consumers:")
+    for i, herbivorous in enumerate(adjacent_herbivorous):
+        print(f"{i + 1}. Type: {herbivorous['type']}, Point: {herbivorous['point']}")
+
+    selected_consumer_index = int(input("Select the carnivorous consumer to consume the herbivorous consumer (enter the number): ")) - 1
+    return carnivorous_consumer[selected_consumer_index]
+
+def handle_player_input_for_decreasing_herbivorous_points(carnivorous_consumer, adjacent_herbivorous):
+    print(f"The carnivorous consumer with Point {carnivorous_consumer['point']} is consuming adjacent herbivorous consumers.")
+    print("Adjacent herbivorous consumers:")
+    for i, herbivorous in enumerate(adjacent_herbivorous):
+        print(f"{i + 1}. Type: {herbivorous['type']}, Point: {herbivorous['point']}")
+
+    print("How would you like to allocate the decrease in points among these herbivorous consumers?")
+    for herbivorous_consumer in adjacent_herbivorous:
+        #print('!')
+        decrease = 0
+        while decrease < carnivorous_consumer['point']:
+            decrease = int(input(f"Enter the point decrease for producer with Point {herbivorous_consumer['point']}: "))
+            print(f"{decrease}")
+            if decrease <= 0:
+                break
+            if herbivorous_consumer['current_point'] >= decrease:
+                herbivorous_consumer['current_point'] -= decrease
+                break
+            else:
+                decrease -= herbivorous_consumer['current_point']
+                herbivorous_consumer['current_point'] = 0
+        
+
+# Survival Stage with Complete Player Input
+def handle_survival_stage_with_complete_player_input(board, selected_environment_card, energy_deck, players):
+    board_copy = board.copy()
+    stored_energy = 0
+    if energy_deck:
+        drawn_energy_card = energy_deck.pop()
+        print(f"The drawn energy card's point:{drawn_energy_card['point']}")
+        print(f"The stored energy is:{stored_energy}")
+        display_dynamic_board(board)
+    for coord, card in board.items():
+        if card['type'] == 'producer':
+            #print('!')
+            card['current_point'] = min(card['point'], calculate_producer_energy(drawn_energy_card, stored_energy, selected_environment_card))
+    for coord, card in board_copy.items():
+        if card['type'] == 'herbivorous_consumer':
+            card['current_point'] = card['point']
+            adjacent_producers = find_adjacent_cards_of_type(coord, 'producer', board, invert=False)
+            print(adjacent_producers)
+            if not adjacent_producers:
+                #print('!!')
+                del board[coord]
+                #ld(f"{coord},{board}")
+            else:
+                total_producer_points = sum(producer['current_point'] for producer in adjacent_producers)
+                selected_consumer = handle_player_input_for_herbivorous_consumption([card], adjacent_producers)
+                if total_producer_points >= card['current_point']:
+                    handle_player_input_for_decreasing_producer_points(selected_consumer, adjacent_producers)
+                else:
+                    for coord, card in board_copy.items():
+                        if card in adjacent_producers:
+                            del board[coord]
+                
+                                    
+    for coord, card in board_copy.items():
+        if card['type'] == 'carnivorous_consumer':
+                #print('!!!')
+            card['current_point'] = card['point']
+            adjacent_herbivorous = find_adjacent_cards_of_type(coord, 'herbivorous_consumer', board, invert=False)
+            if not adjacent_herbivorous:
+                del board[coord]
+            else:
+                total_herbivorous_points = sum(herbivorous['current_point'] for herbivorous in adjacent_herbivorous)
+                if total_herbivorous_points >= card['current_point']:
+                    # The user should allocate the decrease in points among the producers
+                    # Placeholder: Allocating points uniformly for simplicity
+                    adjacent_herbivorous = find_adjacent_cards_of_type(coord, 'herbivorous_consumer', board, invert=False)
+                    selected_consumer = handle_player_input_for_carnivorous_consumption([card], adjacent_herbivorous)
+                    adjust_adjacent_card_points(selected_consumer, adjacent_herbivorous)
+                else:
+                    for coord, card in board_copy.items():
+                        if card in adjacent_herbivorous:
+                            del board[coord]
+    # New logic for allowing the player to allocate the decrease in points among herbivorous consumers
+                        
+    board_copy=board.copy()
+    for coord, card in board_copy.items():
+        #ld(f"{coord},{board},{card['type']}")
+        if card['type'] != 'decomposer':
+            #print(f"{card}")
+            adjacent_decomposers = find_adjacent_cards_of_type(coord, 'decomposer', board, invert=False)
+            #ld(f"{coord},{board}")
+            total_decomposer_points = sum(decomposer_card['point'] for decomposer_card in adjacent_decomposers)
+            #ld(f"{coord},{board}")
+            if total_decomposer_points < card['current_point']:
+                #print(f"{card['current_point']}")
+                #print(f"{total_decomposer_points}")
+                #ld(f"{coord},{board}")
+                del board[coord]
+    board_copy=board.copy()
+    for coord, card in board_copy.items():
+        if card['type'] == 'decomposer':
+            card['current_point'] = card['point']
+            adjacent_non_decomposers = find_adjacent_cards_of_type(coord, 'decomposer', board, invert=True)
+            #adjacent_non_decomposers = find_adjacent_cards_of_type(coord, 'decomposer', board, invert=True)
+            #ld(f"{coord}{board}")
+            if not adjacent_non_decomposers:
+                del board[coord]
+                continue
+    display_dynamic_board(board)
+    for card in board.values():
+        card['current_point'] = card['point']
+
+# Mission Completion Check (Placeholder)
+def check_mission_completion(players, board, stored_energy):
+    mission_validation_funcs = {
+        1: validate_full_house_of_producers,
+        2: validate_straight_of_herbivorous,
+        3: validate_four_of_a_kind_of_carnivorous,
+        4: validate_flush_of_decomposers,
+        5: validate_pong_and_chow_of_producers,
+        6: validate_two_pair_of_herbivorous_and_carnivorous,
+        7: lambda board: validate_stored_energy_to_producers(board, stored_energy),
+        8: validate_most_valuable_block,
+        9: validate_checkmate_pattern,
+        10: validate_diagonal_cross,
+        11: validate_museum_collection,
+        12: validate_web_of_life,
+        13: validate_universal_balance
+    }
+    for player in players:
+        mission_point = player['mission_card']['point']
+        if mission_validation_funcs[mission_point](board):
+            print(f"Player {player['id']} has completed their mission: {player['mission_card']['objective']}")
+            return True  # Mission completed, game over
+    return False
+# End-Game Handling
+def handle_end_game(players, board):
+    winners = []
+    for player in players:
+        if check_mission_completion(player['mission'], board):
+            winners.append(player)
+    if len(winners) != 1:
+        highest_point = max(player['mission']['point'] for player in players)
+        winners = [player for player in players if player['mission']['point'] == highest_point]
+    if len(winners) == 1:
+        print(f"The winner is Player {winners[0]['id']} with the mission: {winners[0]['mission']['name']}")
+    else:
+        print("It's a tie among the following players:")
+        for winner in winners:
+            print(f"Player {winner['id']} with the mission: {winner['mission']['name']}")
+
+# Main Game Loop with End-Game Handling
+def run_game_with_end_game_handling():
+    organism_deck = create_organism_deck()
+    energy_deck = create_energy_deck()
+    environment_deck = create_environment_deck()
+    mission_deck = create_mission_deck()
+    shuffle_decks(organism_deck, energy_deck, environment_deck, mission_deck)
+    players = initialize_players(4)
+    starting_player = players[0]
+    board = {}
+    selected_environment_card = environment_deck.pop()
+    for player in players:
+        player['hand'] = [organism_deck.pop() for _ in range(4)]
+        drawn_missions = [mission_deck.pop() for _ in range(3)]
+        # For now, select the first mission card drawn
+        print(f"Player {player['id']}, you have drawn the following mission cards:")
+        for idx, mission in enumerate(drawn_missions):
+            print(f"{idx+1}. {mission['point']} {mission_objectives[mission['point']]['content']}")
+        
+    # Let the player make a choice
+        choice = int(input(f"Player {player['id']}, please enter the number of the mission card you choose: ")) - 1
+    
+    # Validate the choice
+        while choice < 0 or choice >= len(drawn_missions):
+            print("Invalid choice. Please choose again.")
+            choice = int(input(f"Player {player['id']}, please enter the number of the mission card you choose: ")) - 1
+
+    # Assign the chosen mission card to the player
+        player['mission'] = drawn_missions[choice]
+        print(f"Player {player['id']} selected mission: {player['mission']}")
+        print(f"Player {player['id']} initial hands:")
+        for idx, card in enumerate(player['hand']):
+        # Extract 'type' and 'point' values from the card
+            card_values = {'type': card['type'], 'point': card['point']}
+            print(f"{idx+1}. {card_values['type']}(Point:{card_values['point']})")
+    current_player = starting_player
+    round_number = 1
+    game_over = False
+    players_who_skipped = set()
+    while not game_over:
+        print(f"Round {round_number} (Environment Card: {selected_environment_card['point']})")
+        print("Board:")
+        display_dynamic_board(board)
+        # Change-of-Cards Stage (Placeholder)
+        if round_number > 1:
+            for player in players:
+                discard_and_draw_up_to(4, organism_deck, player)
+        
+        # Print the player's ID and the 'type' and 'point' values for the player's hand
+                print(f"Player {player['id']} hand after change-of-cards:")
+                for idx, card in enumerate(player['hand']):
+        # Extract 'type' and 'point' values from the card
+                    card_values = {'type': card['type'], 'point': card['point']}
+                    print(f"{idx+1}. {card_values['type']}(Point:{card_values['point']})")
+
+
+        # Planning Stage for Human Players (Placeholder)
+        while True:
+            # Check if all players have chosen to skip
+            if len(players_who_skipped) == len(players):
+                break
+            
+            # Handle card placement for the current player
+            if current_player['id'] not in players_who_skipped:
+                user_input = input(f"Player{current_player['id']},Do you want to skip? y/n: ")
+                if user_input == 'y':
+                    players_who_skipped.add(current_player['id'])
+                else:
+                    handle_card_placement(current_player, board)
+                    #ld(f"{board}")
+            else:
+                players_who_skipped.add(current_player['id'])
+            
+            # Move to the next player
+            current_player_index = (players.index(current_player) + 1) % len(players)
+            current_player = players[current_player_index]
+        display_dynamic_board(board)
+        #ld(f"{board}")
+        # Survival Stage for Human Players
+        handle_survival_stage_with_complete_player_input(board, selected_environment_card, energy_deck, players)
+        round_number += 1
+        players_who_skipped.clear()
+        
+        # Check for End-Game
+        if not organism_deck:
+            game_over = True
+        
+            
+    # Handle End-Game
+    handle_end_game(players, board)
+
+run_game_with_end_game_handling()
+# Note: The above function includes end-game handling and would be the complete game loop with only human players.
