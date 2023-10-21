@@ -1,0 +1,137 @@
+/* style.css */
+.scene {
+    transition: opacity 0.5s ease-in-out;
+    opacity: 0;
+    display: none;
+}
+
+.scene.active {
+    opacity: 1;
+    display: block;
+}
+
+#status-indicator {
+    margin-top: 10px;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background-color: red;
+    display: inline-block;
+}
+
+#loader {
+    border: 16px solid #f3f3f3;
+    border-top: 16px solid #3498db;
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    animation: spin 2s linear infinite;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #218838;
+}
+#dynamic-board {
+    /* Add styles for the overall board container */
+    width: 80%;
+    margin: auto;
+}
+
+.board-row {
+    /* Add styles for each row of the board */
+    display: flex;
+}
+
+.board-cell {
+    /* Add styles for each cell of the board */
+    padding: 10px;
+    border: 1px solid #ccc;
+    text-align: center;
+}
+
+.empty-cell {
+    /* Add styles for empty cells */
+    background-color: #f0f0f0;
+}
+/* Top Section */
+.top-section {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+}
+
+.environment-card, .round-number, .stored-energy-card {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+}
+
+/* Middle Section */
+.mid-section {
+    padding: 20px 10px;
+    text-align: center;
+}
+
+.player-stage {
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+#game-board-container {
+    max-width: 100%;  /* or set to a fixed width if you have a design width in mind */
+    max-height: 2000px; /* adjust based on your design preference */
+    overflow: auto;  /* allows scrolling when content exceeds the container size */
+    position: relative;
+    border: 1px solid #ccc;  /* optional, just to visualize the boundary of the board */
+    margin: 20px 0;  /* give some spacing */
+}
+
+
+/* Bottom Section */
+.bottom-section {
+    padding: 10px;
+    border-top: 1px solid #ccc;
+}
+
+.task {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#hand-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.card {
+    margin: 5px;
+    /* Add other styles for the cards in the player's hand */
+}
+.board-cell.highlighted {
+    background-color:#ffd700
+}
+
+.board-cell.mouseover-highlight {
+    background-color: #ccc;  
+}
